@@ -22,4 +22,4 @@ down-pycharm:
 	docker-compose -f ./docker-compose.yml rm -f hashcode
 
 bash:
-	docker exec -it data_lake_etl_bash_1 bash
+	docker exec -it hashcode2018_hashcode_bash_1 bash

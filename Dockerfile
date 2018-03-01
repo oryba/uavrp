@@ -20,4 +20,6 @@ RUN python3.6 -m pip install --upgrade pip \
 # Dev tools
 RUN python3.6 -m pip install ipython[all] pylint pytest-cov
 
+ENV LC_ALL=en_US.utf8
+
 CMD ["bash"]
