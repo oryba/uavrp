@@ -3,6 +3,7 @@ Description
 """
 
 from attrdict import AttrDict
+from entities import Data, get_data
 
 __version__ = "0.1"
 __author__ = "oyarush"
@@ -48,13 +49,15 @@ class PizzaReader(Reader):
         self.data['T'] = T
 
 
-class KnapsnackReader(Reader):
+class KnapsackReader(Reader):
     params = ['W', 'pack']
 
     def process(self):
 
         with open(self.input_file, 'r') as f:
-            self.data['W'] = int(f.readline())
-            matrix = f.readlines()
+            header = [int(i) for i in f.readline().split()]
+            body = [[int(i) for i in row.split()] for row in f.readlines()]
+            self.data = get_data(header, body)
 
-        self.data['pack'] = [tuple(map(lambda x: int(x), row.split())) for row in matrix]
+    def get(self):
+        return self.data

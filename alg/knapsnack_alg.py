@@ -2,14 +2,15 @@
 Description
 """
 
-from alg.alg import Alg
-import numpy as np
 from random import randint
 
+import numpy as np
+
+from alg.alg import Alg
 
 __version__ = "0.1"
 __author__ = "oyarush"
-__credits__ = ["oyarush"]
+__credits__ = ["oyarush", "oryba"]
 
 
 class Knapsnack(Alg):
