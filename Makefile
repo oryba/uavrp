@@ -1,7 +1,7 @@
 build-image:
 	docker build -t hashcode:latest -f ./Dockerfile .
 
-build: build-image clean
+build: down down-pycharm build-image clean
 
 clean:
 	docker rmi -f $$(docker images -f "dangling=true" -q) || true
@@ -18,8 +18,8 @@ rm:
 down: stop rm
 
 down-pycharm:
-	docker-compose -f ./docker/docker-compose.yml stop hashcode
-	docker-compose -f ./docker/docker-compose.yml rm -f hashcode
+	docker-compose -f ./docker-compose.yml stop hashcode
+	docker-compose -f ./docker-compose.yml rm -f hashcode
 
 bash:
 	docker exec -it data_lake_etl_bash_1 bash
