@@ -1,0 +1,11 @@
+hashcode:
+    image: hashcode:latest
+    volumes:
+        - "./:/app"
+hashcode_bash:
+    image: hashcode:latest
+    tty: true
+    ports:
+        - "8888:8888"
+    volumes:
+        - "./:/app"
