@@ -23,7 +23,7 @@ class Greedy():
         score = 0
         for vehicle in self.vehicles:
             for final_ride in vehicle.rides:
-                score += final_ride.ride.end - final_ride.ride.start
+                score += final_ride.profit
         return score
 
     def _get_available_options(self, vehicle: Vehicle):
@@ -33,19 +33,40 @@ class Greedy():
             step_dif = ride.start_time - vehicle.step
             dif = max(street_dif, step_dif)
             street_length = ride.end - ride.start
+            # bonus
+            bonus = (vehicle.step + dif <= ride.start_time) * self.header.bonus
             # vehicle can't serve this ride
             if vehicle.step + dif + street_length > self.header.steps\
                     or vehicle.step + dif + street_length > ride.end_time:
                 continue
             available.append(
-                AvailableRide(ride, dif, street_length)
+                AvailableRide(ride, dif, street_length + bonus)
             )
         return available
+
+    def _combine(self, dif, profit, difs, profits):
+        min_dif = min(difs)
+        min_profit = min(profits)
+        try:
+            return (dif - min_dif)/(max(difs) - min_dif) + \
+               (profit - min_profit)/(max(profits) - min_profit)
+        except:
+            return dif, -profit
+
+    def _simple_decision(self, dif, profit):
+        return dif, -profit
 
     def _select_option(self, options: [AvailableRide], vehicle: Vehicle):
         if not options:
             return False
-        selected = sorted(options, key=lambda o: (o.dif, -o.profit))[0]
+        profits = [op.profit for op in options]
+        difs = [op.dif for op in options]
+        min_profits = min(profits)
+        max_profits = max(profits)
+        min_difs = min(difs)
+        max_difs = max(difs)
+        selected = sorted(options, key=lambda o: (o.dif - min_difs)/(max_difs - min_difs) + \
+               (o.profit - min_profits)/(max_profits - min_profits) if (max_difs - min_difs) > 0 and (max_profits - min_profits) > 0 else (o.dif, -o.profit))[0]
         selected.ride.available = False
         vehicle.rides.append(selected)
         vehicle.position = selected.ride.end
