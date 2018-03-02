@@ -4,31 +4,24 @@ Description
 
 import click
 
-from alg.reader import KnapsackReader
-from alg.knapsnack_alg import Knapsnack
+from reader import VehicleAssignmentReader
 from greedy import Greedy
 
 __version__ = "0.1"
-__author__ = "oyarush"
-__credits__ = ["oyarush"]
+__author__ = "oryba"
+__credits__ = ["oryba", "oyarush"]
 
 
 @click.command()
-@click.option('--file', help='Path to input file', type=click.Path(dir_okay=False), required=True)
+@click.option('--file', help='Path to input file without extension',
+              default='a_example', required=True)
 def main(file):
-
-    reader = KnapsackReader('input/{}.in'.format(file))
-    reader.process()
-    data = reader.get()
+    reader = VehicleAssignmentReader('input/{}.in'.format(file))
+    data = reader.process()
 
     g = Greedy(data.header, data.rides)
     g.run()
     g.output("output/{}.out".format(file))
-
-    # knapsnack = Knapsnack(data, iteration, child_number, population_number, chance_number)
-    # knapsnack.run()
-    #
-    # print(knapsnack.result)
 
 
 if __name__ == '__main__':
