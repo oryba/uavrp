@@ -1,11 +1,9 @@
 """
-Description
+Prototypes of involved objects
 """
 
-from .entities import Individual, Header, Ride, Data, Vehicle, Point, get_data
+from .entities import Header, Ride, Vehicle, Point, AvailableRide, Data
 
 __version__ = "0.1"
-__author__ = "rv.oleg"
-__credits__ = ["rv.oleg"]
-
-# code here
+__author__ = "oryba"
+__credits__ = ["oryba"]

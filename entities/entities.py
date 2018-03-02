@@ -1,42 +1,34 @@
+"""
+Prototypes of involved objects
+"""
 from recordclass import recordclass
 
+__version__ = "0.1"
+__author__ = "oryba"
+__credits__ = ["oryba"]
 
-individual_record = recordclass('Individual', ['code', 'fitness'])
+# Ride container with calculated time delta and profit
+AvailableRide = recordclass('AvailRide', ['ride', 'delta', 'profit'])
 
-
-class Individual(individual_record):
-    def __hash__(self):
-        return hash((hash(el) for el in self.code))
-
-
+# Problem properties
 Header = recordclass('Header', ['rows', 'cols', 'vehicles', 'rides',
                                   'bonus', 'steps'])
-
+# Ride with its properties
 Ride = recordclass('Ride', ['idx', 'start', 'end', 'start_time', 'end_time',
                             'available'])
 
+# Problem data with headers and rides set
 Data = recordclass('Data', ['header', 'rides'])
 
+# Map point base class
 BasePoint = recordclass('Point', ['x', 'y'])
 
 
+# Map point
 class Point(BasePoint):
     def __sub__(self, other):
         return abs(self.x - other.x) + abs(self.y - other.y)
 
 
+# Vehicle with its properties
 Vehicle = recordclass('Vehicle', ['idx', 'position', 'step', 'rides'])
-
-
-def get_data(head, body):
-    def _parse_ride(r, idx) -> Ride:
-        start = Point(r[0], r[1])
-        end = Point(r[2], r[3])
-        start_time, end_time = r[4], r[5]
-        return Ride(idx, start, end, start_time, end_time, True)
-
-    header = Header(*head)
-    rides = [_parse_ride(ride, idx) for idx, ride in enumerate(body)]
-    return Data(header, rides)
-
-
