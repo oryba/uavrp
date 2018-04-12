@@ -55,7 +55,7 @@ class Plotter():
 
     def plot_edges(self):
         for e in self.graph.edges:
-            plt.plot([e.start.x, e.end.x], [e.start.y, e.end.y], color='c',
+            plt.plot([e.start.x, e.end.x], [e.start.y, e.end.y], color=e.color,
                      linewidth=3.0)
 
     def show(self):

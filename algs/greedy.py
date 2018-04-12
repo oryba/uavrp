@@ -14,18 +14,16 @@ class Greedy(Alg):
     def __init__(self, data: Data):
         super().__init__(data)
 
-    def get_score(self):
+    def get_score(self, vehicles=None):
         """Calculate a score of current state
 
         :return integer score"""
         score = 0
-        for vehicle in self.vehicles:
+        for vehicle in (vehicles or self.vehicles):
             if vehicle.points:
                 points = [p for p in vehicle.points]
                 score += sum([p - n for p, n in zip(points, points[1:])])
-                score += min(
-                    [d.distance for d in vehicle.distance_to_list(vehicle.depots)]
-                )
+                print(sum([p - n for p, n in zip(points, points[1:])]))
 
         return score
 
@@ -63,14 +61,23 @@ class Greedy(Alg):
             [self._get_available_options(v) for v in self.vehicles]
         ))
         if not options:
-            return False
+            for v in self.vehicles:
+                v.move_to_depot()
+            options = list(itertools.chain.from_iterable(
+                [self._get_available_options(v) for v in self.vehicles]
+            ))
+            if not options:
+                return False
         self._select_option(options)
         return True
 
-    def run(self):
+    def run(self, silent=True):
         """Run iterations till no improvements left"""
         i = 0
         while self._iteration():
             i += 1
-            print("Iteration {} => score {}".format(i, self.get_score()))
-        print("After {} iterations score is {}".format(i, self.get_score()))
+            if not silent:
+                print("Iteration {} => score {}".format(i, self.get_score()))
+        self._local(self.vehicles)
+        if not silent:
+            print("After {} iterations score is {}".format(i, self.get_score()))

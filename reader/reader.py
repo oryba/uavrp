@@ -2,7 +2,7 @@
 Input processor
 """
 
-from entities import Point, Header, Data, Depot, Target, Vehicle, Obstacle
+from entities import *
 
 __version__ = "0.1"
 __author__ = "oyarush"
@@ -28,19 +28,15 @@ class FlightsReader(Reader):
         with open(self.input_file, 'r') as f:
             header = Header(*[int(i) for i in f.readline().split()])
             depots = list(Depot.fabric(
-                [reversed([float(i) for i in next(f).split()])
-                      for x in range(header.depots)]
+                [next(f) for x in range(header.depots)]
             ))
             targets = list(Target.fabric(
-                [reversed([float(i) for i in next(f).split()])
-                       for x in range(header.targets)]
+                [next(f) for x in range(header.targets)]
             ))
             obstacles = list(Obstacle.fabric(
-                [reversed([float(i) for i in next(f).split()])
-                      for x in range(header.obstacles)]
+                [next(f) for x in range(header.obstacles)]
             ))
             vehicles = list(Vehicle.fabric(
-                [[float(i) for i in next(f).split()]
-                      for x in range(header.vehicles)]
+                [next(f) for x in range(header.vehicles)]
             ))
             return Data(header, depots, targets, obstacles, vehicles)

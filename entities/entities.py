@@ -12,7 +12,7 @@ __author__ = "oryba"
 __credits__ = ["oryba"]
 
 # Ride container with calculated time delta and profit
-AvailableOption = namedtuple('AvailOption', ['vehicle',
+AvailableOption = recordclass('AvailOption', ['vehicle',
                                              'distance', 'milestones'])
 
 # Problem data with headers and rides set
@@ -34,7 +34,7 @@ class Point:
 
     @lru_cache(None)
     def __sub__(self, other):
-        if self.free and other.free:
+        if self.free and isinstance(other, Depot):
             return 0
         # return abs(self.x - other.x) + abs(self.y - other.y)
         return vincenty((self.x, self.y), (other.x, other.y)).km
@@ -54,14 +54,16 @@ class Point:
 
 
 class Depot(Point):
-    def __init__(self, position: Point):
+    def __init__(self, position: Point, name=''):
         self.position = position
-        super().__init__(*position, free=True)
+        self.name = name
+        super().__init__(*position)
 
     @staticmethod
     def fabric(depots):
         for depot in depots:
-            yield Depot(Point(*depot))
+            y, x, name = depot.strip().split()
+            yield Depot(Point(float(x),float(y)), name=name)
 
     def __repr__(self):
         return 'Depot at {}:{}'.format(*self.position)
@@ -71,6 +73,7 @@ class TargetState(Point):
     def __init__(self, target):
         self.position = target.position
         self.visited = False
+        self.name = target.name
         super().__init__(*target.position)
 
     def __repr__(self):
@@ -79,29 +82,37 @@ class TargetState(Point):
 
 
 class Target(Point):
-    def __init__(self, position: Point):
+    def __init__(self, position: Point, name=''):
         self.position = position
+        self.name = name
         super().__init__(*position)
+        self.id = 0
 
     @staticmethod
     def fabric(targets):
         for target in targets:
-            yield Target(Point(*target))
+            y, x, name = target.strip().split()
+            yield Target(Point(float(x),float(y)), name=name)
 
     def create_state(self):
         return TargetState(self)
 
+    def __repr__(self):
+        return str(self.id)
+
 
 class Obstacle(Point):
-    def __init__(self, position: Point, radius: float):
+    def __init__(self, position: Point, radius: float, name=''):
         self.position = position
         self.radius = radius
+        self.name = name
         super().__init__(*position)
 
     @staticmethod
     def fabric(obstacles):
         for obstacle in obstacles:
-            yield Obstacle(Point(*obstacle[:2]), obstacle[2])
+            y, x, radius, name = obstacle.strip().split()
+            yield Obstacle(Point(float(x),float(y)), radius, name=name)
 
     def __repr__(self):
         return 'Obstacle at {}:{}'.format(*self.position)
@@ -112,10 +123,17 @@ class VehicleState:
         self.vehicle = vehicle
         self.position = position
         self.reserve = vehicle.dist
+        self.name = vehicle.name
         self.points = []
         self.depots = depots
 
-    # @lru_cache()
+    def get_copy(self):
+        v = VehicleState(self.vehicle, self.position, self.depots)
+        v.points = self.points[:]
+        v.reserve = self.reserve
+        return v
+
+    @lru_cache()
     def _get_way(self, source: Point, destination: Point):
         milestones = []
         if source.free:
@@ -155,56 +173,74 @@ class VehicleState:
         else:
             return False
 
-    def move(self, option: AvailableOption):
+    def move(self, option: AvailableOption, skip_marking=False):
         #if not self.check_flight(destinations[-1]):
         #    return False
         distance, way = option.distance, option.milestones
         self.reserve -= distance
         self.position = way[-1]
         self.points.extend(way)
-        way[-1].visited = True
+        if not skip_marking:
+            for w in way:
+                w.visited = True
         return distance
 
-    def distance_to_list(self, destinations: [Point], through_null_point=False):
+    def move_to_depot(self):
+        if isinstance(self.position, Depot):
+            return False
+        in_depot_index, in_distance = min(
+            enumerate([self.position - d for d in self.depots]),
+            key=operator.itemgetter(1)
+        )
+        # recharge
+        self.reserve = self.vehicle.dist
+        depot = self.depots[in_depot_index]
+        self.position = depot
+        self.points.append(depot)
+
+    def distance_to_list(self, destinations: [Point]) -> [AvailableOption]:
         options = [AvailableOption(
                 self, *self._get_way(self.position, d))
-                for d in destinations if self.check_flight(d)]
-        if through_null_point:
-            # TODO: check flight!
-            options += [AvailableOption(
-                self, *self._get_way_through_depot(self.position, d))
-                for d in destinations if self.check_flight(d)]
+                for d in destinations if self.check_flight(d) and d != self.position]
+        # if through_null_point:
+        #     # TODO: check flight!
+        #     options += [AvailableOption(
+        #         self, *self._get_way_through_depot(self.position, d))
+        #         for d in destinations if self.check_flight(d)]
         return options
 
-
     def __repr__(self):
-        return 'Vehicle at {}:{}'.format(*self.position)
+        return 'Vehicle {} at {}:{}'.format(self.vehicle.name, *self.position)
 
 
 class Vehicle:
-    def __init__(self, dist, speed):
+    def __init__(self, dist, speed, color='c', name=''):
         self.speed = speed
         self.dist = dist
+        self.color = color
+        self.name = name
 
     @staticmethod
     def fabric(vehicles):
-        for vehicle in vehicles:
-            yield Vehicle(*(vehicle))
+        colors = ['#aaaa00', '#aa00aa', '#00aa00']
+        for i, vehicle in enumerate(vehicles):
+            dist, speed, name = vehicle.strip().split()
+            yield Vehicle(float(dist), float(speed), name=name, color=colors[i % len(colors)])
 
     def create_state(self, depots: [Depot]):
         return VehicleState(self, Point(0, 0, free=True), depots)
 
     def __repr__(self):
-        return 'Vehicle'
+        return 'Vehicle {}'.format(self.name)
 
 
-Edge = recordclass('Edge', ['start', 'end', 'weight'])
+Edge = recordclass('Edge', ['start', 'end', 'color'])
 
-ACOParams = namedtuple('ACO', ['q', 'p', 'a', 'b'])
+ACOParams = namedtuple('ACO', ['q', 'p', 'a', 'b', 'iterations', 'two_steps'])
 
 
 class Pheromone:
-    def __init__(self, points, p, q, start=0.4):
+    def __init__(self, points, p, q, start=0.4, bounds=(0.4, 1.9)):
         """
         :param points: depots and targets
         :param p: pheromone decrease level
@@ -213,23 +249,38 @@ class Pheromone:
         self.points = points + [Point(0, 0, free=True)]
         self.p = p
         self.q = q
+        self.bounds = bounds
         self.adj = {q: {p: start for p in self.points} for q in self.points}
 
     def __getitem__(self, item):
         return self.adj[item]
 
-    def update(self, vehicles_scores):
+    def evaporation(self):
+        for val in self.adj.values():
+            for p in val:
+                val[p] = max((1 - self.p) * val[p], self.bounds[0])
+
+    def update(self, score, vehicles):
         """
         :param vehicles_scores: tuple (solution, vehicle)
         """
-        # evaporation
-        for val in self.adj.values():
-            for p in val:
-                val[p] = (1 - self.p) * val[p]
+        self.evaporation()
 
         # update
-        for score, v in vehicles_scores:
+        for v in vehicles:
             if not v.points:
                 continue
             for s, d in zip(v.points, v.points[1:]):
-                self.adj[s][d] += self.q / score
+                self.adj[s][d] = min(
+                    self.adj[s][d] + self.q / score,
+                    self.bounds[1]
+                )
+                # self.adj[d][s] = self.adj[s][d]
+
+
+class PointsList(list):
+    def __hash__(self):
+        return hash((el for el in self))
+
+    def copy(self):
+        return PointsList(self)

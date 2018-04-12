@@ -22,17 +22,27 @@ def main(file):
     data = reader.process()
 
     g = Greedy(data)
-    g.run()
+    g.run(silent=True)
     g.display()
+    print(g.get_score())
 
     Q = g.get_score()
 
-    start = time.time()
-    a = ACO(data, ACOParams(Q, 0.2, 0.5, 0.8))
-    a.run()
-    print('It takes {} s'.format(time.time() - start))
+    print('p\ta\tb\tS\ttime\titer\tLS')
+    for p in [0.5]:
+        for a in [1.1]:
+            for b in [40]:
+                for wise in [True]:
+                    start = time.time()
+                    alg = ACO(data, ACOParams(Q, p, a, b, 100, wise))
+                    best = alg.run(silent=True)
+                    print('{p}\t{a}\t{b}\t{s}\t{t}\t{i}\t{ls}'.format(
+                        p=p, a=a, b=b, s=best, t=time.time() - start,
+                        i=alg.last_productive_iteration, ls=alg.ls_number))
+                    del alg
+                    # alg.output()
 
-    # g.output("output/{}.out".format(file))
+    print('Пошук здійснено за {}с'.format(round(time.time() - start, 2)))
 
 
 if __name__ == '__main__':
