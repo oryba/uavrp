@@ -78,7 +78,7 @@ class ACO(Alg):
                     for opt in v_options:
                         temp_v = v.get_copy()
                         temp_v.move(opt, skip_marking=True)
-                        temp_options = temp_v.distance_to_list(self.targets + temp_v.depots)
+                        temp_options = temp_v.distance_to_list(self.targets)
                         if not temp_options:
                             continue
                         for t in temp_options:
@@ -87,11 +87,7 @@ class ACO(Alg):
                             t.milestones = opt.milestones + t.milestones
                         two_steps_options.extend(temp_options)
                         del temp_v
-                    if not two_steps_options:
-                        options += v_options
-                    options += two_steps_options
-                else:
-                    options += v_options
+                options += v_options
         return self._edge_probabilities(options, two_steps_options)
 
     @staticmethod

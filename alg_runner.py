@@ -31,8 +31,8 @@ def main(file):
     print('p\ta\tb\tS\ttime\titer\tLS')
     for p in [0.5]:
         for a in [1.1]:
-            for b in [40]:
-                for wise in [True]:
+            for b in [1.1]:
+                for wise in [True, False]:
                     start = time.time()
                     alg = ACO(data, ACOParams(Q, p, a, b, 100, wise))
                     best = alg.run(silent=True)
