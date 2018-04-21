@@ -23,24 +23,25 @@ def main(file):
 
     g = Greedy(data)
     g.run(silent=True)
-    g.display()
+    # g.display()
     print(g.get_score())
 
     Q = g.get_score()
 
-    print('p\ta\tb\tS\ttime\titer\tLS')
-    for p in [0.5]:
-        for a in [1.1]:
-            for b in [1.1]:
+    print('p\ta\tb\tS\ttime\titer\tLS\twise')
+    for p in [0.8]:
+        for a in [0.4]:
+            for b in [4]:
                 for wise in [True, False]:
-                    start = time.time()
-                    alg = ACO(data, ACOParams(Q, p, a, b, 100, wise))
-                    best = alg.run(silent=True)
-                    print('{p}\t{a}\t{b}\t{s}\t{t}\t{i}\t{ls}'.format(
-                        p=p, a=a, b=b, s=best, t=time.time() - start,
-                        i=alg.last_productive_iteration, ls=alg.ls_number))
-                    del alg
-                    # alg.output()
+                    for rand_seed in ['see', 'eed', 'it']:
+                        start = time.time()
+                        alg = ACO(data, ACOParams(Q, p, a, b, 200, wise), rand_seed)
+                        best = alg.run(silent=True)
+                        print('{p}\t{a}\t{b}\t{s}\t{t}\t{i}\t{ls}\t{w}'.format(
+                            p=p, a=a, b=b, s=best, t=time.time() - start,
+                            i=alg.last_productive_iteration, ls=alg.ls_number, w=wise))
+                        del alg
+                        # alg.output()
 
     print('Пошук здійснено за {}с'.format(round(time.time() - start, 2)))
 

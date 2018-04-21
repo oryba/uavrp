@@ -6,6 +6,7 @@ from collections import namedtuple
 from geopy.distance import vincenty
 import operator
 from functools import lru_cache
+import numpy as np
 
 __version__ = "0.1"
 __author__ = "oryba"
@@ -34,8 +35,13 @@ class Point:
 
     @lru_cache(None)
     def __sub__(self, other):
-        if self.free and isinstance(other, Depot):
-            return 0
+        if self.free:
+            if isinstance(other, Depot):
+                return 0
+            else:
+                return float('inf')
+        if other.free:
+            return float('inf')
         # return abs(self.x - other.x) + abs(self.y - other.y)
         return vincenty((self.x, self.y), (other.x, other.y)).km
 
@@ -126,6 +132,8 @@ class VehicleState:
         self.name = vehicle.name
         self.points = []
         self.depots = depots
+        self.np = 0
+        self.idx = None
 
     def get_copy(self):
         v = VehicleState(self.vehicle, self.position, self.depots)
@@ -164,7 +172,7 @@ class VehicleState:
                  destination])
 
     def check_flight(self, destination: Point):
-        if getattr(destination, 'visited', None):
+        if getattr(destination, 'visited', None) and not isinstance(destination, Depot):
             return False
         distance, _ = self._get_way(self.position, destination)
         way_back = min([destination - d for d in self.depots])
@@ -183,6 +191,8 @@ class VehicleState:
         if not skip_marking:
             for w in way:
                 w.visited = True
+        if isinstance(way[-1], Depot):
+            self.reserve = self.vehicle.dist
         return distance
 
     def move_to_depot(self):
@@ -258,7 +268,9 @@ class Pheromone:
     def evaporation(self):
         for val in self.adj.values():
             for p in val:
-                val[p] = max((1 - self.p) * val[p], self.bounds[0])
+                val[p] = max(
+                    (1 - self.p) * (val[p] - self.bounds[0]) + self.bounds[0],
+                    self.bounds[0])
 
     def update(self, score, vehicles):
         """
@@ -269,6 +281,50 @@ class Pheromone:
         # update
         for v in vehicles:
             if not v.points:
+                continue
+            for s, d in zip(v.points, v.points[1:]):
+                self.adj[s][d] = min(
+                    self.adj[s][d] + self.q / score,
+                    self.bounds[1]
+                )
+                # self.adj[d][s] = self.adj[s][d]
+
+
+class NewPheromone:
+    def __init__(self, points, p, q, start=0.2, bounds=(0.2, 0.9)):
+        """
+        :param points: depots and targets
+        :param p: pheromone decrease level
+        :param q: constant order of the optimum
+        """
+        self.p = p
+        self.q = q
+        self.bounds = bounds
+        self.n = len(points)
+        self.adj = np.zeros((self.n, self.n))
+        for i in range(self.n):
+            for j in range(self.n):
+                self.adj[i][j] = start
+
+    def __getitem__(self, item):
+        return self.adj[item]
+
+    def evaporation(self):
+        for i in range(self.n):
+            for j in range(self.n):
+                self.adj[i][j] = max(
+                    (1 - self.p) * self.adj[i][j],
+                    self.bounds[0])
+
+    def update(self, score, vehicles):
+        """
+        :param vehicles_scores: tuple (solution, vehicle)
+        """
+        self.evaporation()
+
+        # update
+        for v in vehicles:
+            if not v:
                 continue
             for s, d in zip(v.points, v.points[1:]):
                 self.adj[s][d] = min(
