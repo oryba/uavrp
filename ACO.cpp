@@ -16,6 +16,8 @@ ACO::ACO(Data *_data) {
     data = _data;
     D = data->D;
 
+    best_score = HELPERS::INF;
+
     // pheromone matrix
     PH = new double *[data->N];
     for (int i = 0; i < data->N; i++) {
@@ -33,6 +35,31 @@ double ACO::calc_p(double tau, double dist) {
 
 double ACO::get_rand() {
     return ((double) rand() / (RAND_MAX));
+}
+
+
+void ACO::update_pheromone(std::vector<int> &path, double score) {
+    for (int i = 0; i < data->N; i++) {
+        for (int j = 0; j < data->N; j++) {
+            // evaporation
+            PH[i][j] = max(
+                    (1 - data->p) * (PH[i][j] - data->ph_min),
+                    data->ph_min
+            );
+        }
+    }
+
+    // update
+    if (path.size() == 0)
+        return;
+    for (int k = 0; k < path.size() - 1; k++) {
+        // limit ph from value
+        PH[path.at(k)][path.at(k + 1)] = min(
+                PH[path.at(k)][path.at(k + 1)] + best_score / score,
+                data->ph_max
+        );
+    }
+
 }
 
 
@@ -65,11 +92,11 @@ Option *ACO::select_best_option(std::vector<Option *> &options) {
 double ACO::score(std::vector<int> *path) {
     double length = D[path->back()][0];
     for (int i = 0; i < path->size() - 1; i++)
-        length+=D[path->at(i)][path->at(i+1)];
+        length += D[path->at(i)][path->at(i + 1)];
     return length;
 }
 
-double ACO::iteration() {
+std::vector<int> *ACO::iteration(double &length) {
     // visited vertices
     auto visited = new bool[data->N];
     for (int k = 0; k < data->N; k++)
@@ -81,7 +108,6 @@ double ACO::iteration() {
 
     // start from 0 vertex
     int current_id = 0;
-    double length = 0;
     path->push_back(current_id);
 
     for (int iter = 0; iter < data->N - 1; iter++) {
@@ -101,7 +127,7 @@ double ACO::iteration() {
             }
         }
 
-        auto selected = select_best_option(*options);
+        auto selected = select_option(*options);
 
         for (int wp : *selected->path) {
             visited[wp] = true;
@@ -113,15 +139,61 @@ double ACO::iteration() {
         for (Option *obj : *options)
             delete obj;
         options->clear();
+        delete options;
     }
-
+    delete visited;
     length = score(path);
-    return length;
+    return path;
 }
 
 
-double ACO::run_alg(int I) {
-    return iteration();
+double ACO::run_alg(int I, int J) {
+    // basic iteration
+    bool non_inc_strategy = false;
+    int non_inc_limit = 0;
+    if (I < 0) {
+        non_inc_strategy = true;
+        non_inc_limit = -I;
+        I = 10000000;
+    }
+    int non_inc_steps = 0;
+    auto paths = new vector<vector<int>>();
+    for (int i = 0; i < I; i++) {
+        auto best_on_step = new vector<int>();
+        double score_on_step = HELPERS::INF;
+        // shared ph runs
+        for (int j = 0; j < J; j++) {
+            double length = HELPERS::INF;
+            auto res = iteration(length);
+            paths->push_back(*res);
+            if (length < score_on_step) {
+                score_on_step = length;
+                best_on_step = res;
+            }
+        }
+        if (best_score > score_on_step) {
+            non_inc_steps = 0;
+            best_score = score_on_step;
+            std::cout << "New best " << best_score << " on step #" << i << std::endl;
+        }
+        else {
+            non_inc_steps ++;
+            if (non_inc_steps > non_inc_limit) {
+                std::cout << "Non-increasing steps limit reached (" << non_inc_steps << ")" <<std::endl;
+                break;
+            }
+        }
+        update_pheromone(*best_on_step, score_on_step);
+
+        for (auto obj : *paths) {
+            obj.clear();
+            obj.resize(0);
+        }
+        paths->clear();
+        paths->resize(0);
+    }
+
+    return best_score;
 }
 
 
@@ -129,4 +201,9 @@ Option::Option(double _dist, vector<int> *_path, double _p_num) {
     dist = _dist;
     path = _path;
     p_num = _p_num;
+}
+
+Option::~Option() {
+    path->clear();
+    path->resize(0);
 }

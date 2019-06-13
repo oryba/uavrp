@@ -4,6 +4,7 @@
 #include "ACO.hpp"
 #include "data.hpp"
 #include <iostream>
+#include <cstdio>
 
 
 double *mock() {
@@ -665,21 +666,28 @@ double *mock() {
 }
 
 
-double bind_data(double *distances, int dim, int n, double p, double a, double b, double ph_min, double ph_max) {
+double
+bind_data(double *distances, int dim, int n, double p, double a, double b, double ph_min, double ph_max, int iters,
+          int ants) {
+    printf("Started\n");
+    printf("n: %d\np: %.2f\na: %.2f\nb: %.2f\nph_min: %.2f\nph_max: %.2f\niters: %d\nants: %d\n", n, p, a, b,
+           ph_min, ph_max, iters, ants);
     auto data = new Data(
             n, HELPERS::to2D(distances, n, n), p, a, b, ph_min, ph_max);
+    printf("Data initialized\n");
     auto aco = new ACO(data);
-    auto res = aco->run_alg(1000);
+    printf("ACO initialized\n");
+    auto res = aco->run_alg(iters, ants);
 
-    std::cout << res <<std::endl;
+    std::cout << res << std::endl;
 
-    return 0;
+    return res;
 }
 
 
 int main() {
     auto D = mock();
-    double res = bind_data(D, 52, 52, 0.1, 0, 1, 0.2, 1);
+    double res = bind_data(D, 52, 52, 0.3, 3, 5, 1, 10, -3, 100);
     std::cout << res << std::endl;
     return 0;
 }

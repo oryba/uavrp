@@ -13,6 +13,8 @@ class Option {
 public:
     Option(double _dist, std::vector<int> *_path, double _p_num);
 
+    ~Option();
+
     double dist, p_num; // additional distance, probability numerator
     std::vector<int> *path;
 };
@@ -24,7 +26,7 @@ public:
 
     double ** D;
 
-    double run_alg(int I);
+    double run_alg(int I, int J);
 
     // void reset();
     constexpr static double INF = 999999990;
@@ -33,7 +35,7 @@ public:
 private:
     Data *data;
     double **PH;
-    double iteration();
+    std::vector<int> *iteration(double &length);
 
     // calculate a probability for given ph and distance
     double calc_p(double tau, double dist);
@@ -48,6 +50,9 @@ private:
 
     double score(std::vector<int> *path);
 
+    void update_pheromone(std::vector<int> &path, double score);
+
+    double best_score;
 };
 
 
